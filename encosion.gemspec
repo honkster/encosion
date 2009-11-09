@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{encosion}
+  s.name = %q{honkster-encosion}
   s.version = "0.3.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
@@ -32,7 +32,7 @@ Gem::Specification.new do |s|
      "test/movie.mov",
      "test/test_helper.rb"
   ]
-  s.homepage = %q{http://github.com/cannikin/encosion}
+  s.homepage = %q{http://github.com/honkster/encosion}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.4}
