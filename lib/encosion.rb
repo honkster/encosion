@@ -12,12 +12,13 @@ require 'yaml'
 # internal
 require 'encosion/base'
 require 'encosion/video'
+require 'encosion/image'
 require 'encosion/playlist'
 require 'encosion/exceptions'
 
 module Encosion
   
-  VERSION = '0.3.0'
+  VERSION = '0.3.1'
   LOGGER = Logger.new(STDOUT)
   
   SERVER = 'api.brightcove.com'
