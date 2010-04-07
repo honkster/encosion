@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
      "README.rdoc",
      "Rakefile",
      "VERSION",
-     "encosion.gemspec",
+     "honkster-encosion.gemspec",
      "lib/encosion.rb",
      "lib/encosion/base.rb",
      "lib/encosion/cue_point.rb",
