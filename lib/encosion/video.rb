@@ -132,6 +132,23 @@ module Encosion
         end
       end
 
+      def delete_by_reference_id(*args)
+        options = extract_options(args)
+        id = args.flatten.compact.uniq.first
+
+        if id.class == String
+          options.merge!({:reference_id => id})
+        else
+          options.merge!({:video_id => id})
+        end
+
+        if response = write('delete_video', options)
+          return response["error"].nil? ? true : response["error"]
+        else
+          return nil
+        end
+      end
+
 
       # the actual method that calls a get (user can use this directly if they want to call a method that's not included here)
       def read(method,options)
