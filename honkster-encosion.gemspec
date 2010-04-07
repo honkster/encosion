@@ -5,10 +5,10 @@
 
 Gem::Specification.new do |s|
   s.name = %q{honkster-encosion}
-  s.version = "0.3.2"
+  s.version = "0.3.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Rob Cameron", "Mason Glaves"]
+  s.authors = ["Rob Cameron"]
   s.date = %q{2010-04-07}
   s.email = %q{cannikinn@gmail.com}
   s.extra_rdoc_files = [
