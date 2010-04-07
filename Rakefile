@@ -4,7 +4,7 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
-    gem.name = "encosion"
+    gem.name = "honkster-encosion"
     gem.summary = %q{Ruby library for working with the Brightcove API}
     gem.email = "cannikinn@gmail.com"
     gem.homepage = "http://github.com/cannikin/encosion"
