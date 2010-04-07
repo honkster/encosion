@@ -83,3 +83,4 @@ And of course the video file itself. Just give :file a File object.
 
 * Implement the remaining Video write methods: update_video, delete_video, share_video, add_image
 * Implement the Playlist API read/write methods
+* Implement new features for the iPhone encodings
