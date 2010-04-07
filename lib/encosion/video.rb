@@ -1,43 +1,46 @@
 module Encosion
-  
+
   # Raised if you try to set an invalid economics value
   class InvalidEconomicsValue < StandardError; end;
-  
+
   class Video < Base
-    
+
     ENUMS = { :economics => { :free => 'FREE', :ad_supported => 'AD_SUPPORTED'}}
-    
-    attr_accessor(:name, 
-                  :short_description, 
+
+    attr_accessor(:name,
+                  :short_description,
                   :long_description,
-                  :link_url, 
-                  :link_text, 
-                  :tags, 
-                  :reference_id, 
+                  :link_url,
+                  :link_text,
+                  :tags,
+                  :reference_id,
                   :economics,
+                  :encode_to,
+                  :create_multiple_renditions,
                   :file)
-      attr_reader(:id, 
-                  :account_id, 
+      attr_reader(:id,
+                  :account_id,
                   :flv_url,
-                  :creation_date, 
-                  :published_date, 
-                  :last_modified_date, 
-                  :video_still_url, 
-                  :thumbnail_url, 
-                  :length, 
-                  :plays_total, 
+                  :renditions,
+                  :creation_date,
+                  :published_date,
+                  :last_modified_date,
+                  :video_still_url,
+                  :thumbnail_url,
+                  :length,
+                  :plays_total,
                   :plays_trailing_week)
-    
-    # 
+
+    #
     # Class methods
     #
     class << self
-      
+
       # Find a video by reference_id. Invokes Brightcove Media API command 'find_video_by_reference_id' or
       # 'find_videos_by_reference_ids' depending on whether you call one or multiple ids
       #   Encosion::Video.find_by_reference_id('mycompany_1')
       #   Encosion::Video.find_by_reference_id('mycompany_1','mycompany_2','mycompany_3')
-      
+
       def find_by_reference_id(*args)
         options = extract_options(args)
         ids = args.flatten.compact.uniq
@@ -55,10 +58,10 @@ module Encosion
             return response['items'].collect { |item| self.parse(item) }
           end
       end
-      
+
       # Find a video by text search. Invokes Brightcove Media API command 'find_videos_by_text'
       #   Encosion::Video.find_by_text('funny videos')
-      
+
       def find_by_text(*args)
         options = extract_options(args)
         text = args.flatten.compact.uniq
@@ -70,11 +73,11 @@ module Encosion
           nil
         end
       end
-      
+
 
       # Find videos related to the given video_id. Invokes Brightcove Media API command 'find_related_videos'
       #   Encosion::Video.find_related(123456)
-      
+
       def find_related(*args)
         options = extract_options(args)
         raise AssetNotFound, "Cannot find related #{self.class}s without a video_id or reference_id" if options[:video_id].nil? && options[:reference_id].nil?
@@ -84,11 +87,11 @@ module Encosion
           return nil
         end
       end
-      
-      
+
+
       # Find a video by tag search. Invokes Brightcove Media API command 'find_videos_by_tags'
       #   Encosion::Video.find_by_tags('bloopers','gagreel','funny')
-      
+
       def find_by_tags(*args)
         options = extract_options(args)
         tags = args.flatten.compact.uniq
@@ -105,31 +108,31 @@ module Encosion
             end
           end
       end
-      
-      
+
+
       # Returns the status of a video upload (returns one of :uploading | :processing | :complete | :error )
       # Takes either Brightcove's video_id or your own reference_id. If you pass an integer it's assumed to be
       # a video_id, if you pass a string it's assumed to be a reference_id.
       #   Encosion::Video.status(12345)
-      
+
       def status(*args)
         options = extract_options(args)
         id = args.flatten.compact.uniq.first
-        
+
         if id.class == String
           options.merge!({:reference_id => id})
         else
           options.merge!({:video_id => id})
         end
-        
+
         if response = write('get_upload_status',options)
           return response['result'].downcase.to_sym
         else
           return nil
         end
       end
-      
-      
+
+
       # the actual method that calls a get (user can use this directly if they want to call a method that's not included here)
       def read(method,options)
         # options.merge!(Encosion.options)
@@ -141,8 +144,8 @@ module Encosion
               method,
               options)
       end
-      
-      
+
+
       # the actual method that calls a post (user can use this directly if they want to call a method that's not included here)
       def write(method,options)
         # options.merge!(Encosion.options)
@@ -163,23 +166,23 @@ module Encosion
           response = read('find_video_by_id',options)
           return self.parse(response)
         end
-      
-       
+
+
         # Find mutliple videos by id
         def find_some(ids, options)
           options.merge!({:video_ids => ids.join(',')})
           response = read('find_videos_by_ids',options)
           return response['items'].collect { |item| self.parse(item) }
         end
-      
-      
+
+
         # Find all videos
         def find_all(options)
           response = read('find_all_videos', options)
           return response['items'].collect { |item| self.parse(item) }
         end
-        
-      
+
+
         # Creates a new Video object from a Ruby hash (used to create a video from a parsed API call)
         def parse(obj)
           if obj
@@ -197,17 +200,34 @@ module Encosion
                     :thumbnail_url => obj['thumbnailURL'],
                     :reference_id => obj['referenceID'],
                     :length => obj['length'].to_i,
+                    :flv_url => obj['FLVURL'],
                     :economics => obj['economics'] ? ENUMS[:economics].find { |key,value| value == obj['economics'] }.first : nil,
                     :plays_total => obj['playsTotal'].to_i,
-                    :plays_trailing_week => obj['playsTrailingWeek'].to_i } unless obj.nil?
+                    :plays_trailing_week => obj['playsTrailingWeek'].to_i }
+
+            args[:renditions] = obj['renditions'].map do |rendition|
+              { :encodingRate => rendition["encodingRate"], :url => rendition["url"] }
+            end if obj['renditions']
+
             return self.new(args)
           else
             return nil
           end
         end
-      
     end
-        
+
+    def best_rendition(max_rate = 262144)
+      return flv_url unless renditions
+
+      urls = {}
+      best_rate = renditions.map do |r|
+        urls[r[:encodingRate]] = r[:url]
+        r[:encodingRate]
+      end.sort.reverse.select { |rate| rate <= max_rate }.first
+
+      urls[best_rate] || flv_url
+    end
+
     #
     # Instance methods
     #
@@ -229,19 +249,25 @@ module Encosion
       @economics = self.economics = args[:economics]
       @plays_total = args[:plays_total]
       @plays_trailing_week = args[:plays_trailing_week]
+      @encode_to = args[:encode_to] || 'MP4'
+      @create_multiple_renditions = args[:create_multiple_renditions] || true
+      @flv_url = args[:flv_url]
+      @renditions = args[:renditions]
       @file = args[:file]
     end
-    
-    
+
+
     # Saves a video to Brightcove. Returns the Brightcove ID for the video that was just uploaded.
     #   new_video = Encosion::Video.new(:file => File.new('/path/to/file'), :name => "My Awesome Video", :short_description => "A video of some awesome happenings", :tags => ['awesome','sweet'])
     #   brightcove_id = new_video.save(:token => '123abc')
-    
+
     def save(args={})
       # check to make sure we have everything needed for a create_video call
       raise NoFile, "You need to attach a file to this video before you can upload it: Video.file = File.new('/path/to/file')" if @file.nil?
       options = args.merge({ 'video' => self.to_brightcove })   # take the parameters of this video and make them a valid video object for upload
-      options.merge!({:token => Encosion.options[:write_token]}) unless options[:token]
+      options.merge!({ :token => Encosion.options[:write_token] }) unless options[:token]
+      options.merge!({ 'encode_to' => @encode_to }) unless options[:encode_to]
+      options.merge!({ 'create_multiple_renditions' => @create_multiple_renditions }) unless options[:create_multiple_renditions]
       response = Video.post(Encosion.options[:server],
                             Encosion.options[:port],
                             Encosion.options[:secure],
@@ -251,8 +277,8 @@ module Encosion
                             self)
       return response['result']    # returns the Brightcove ID of the video that was just uploaded
     end
-    
-    
+
+
     # Output the video as JSON
     def to_json
       { :id => @id,
@@ -271,10 +297,11 @@ module Encosion
         :length => @length,
         :economics => @economics,
         :plays_total => @plays_total,
+        :flv_url => @flv_url,
         :plays_trailing_week => @plays_trailing_week }.to_json
     end
-    
-    
+
+
     # Outputs the video object into Brightcove's expected format
     def to_brightcove
       { 'name' => @name,
@@ -286,8 +313,8 @@ module Encosion
         'referenceId' => @reference_id,
         'economics' => ENUMS[:economics][@economics] }
     end
-    
-    
+
+
     # Makes sure that the economics set on this video is one of a predetermined list
     def economics=(sym)
       unless sym.nil?
@@ -298,7 +325,7 @@ module Encosion
         end
       end
     end
-    
+
   end
-  
+
 end

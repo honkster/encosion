@@ -4,38 +4,38 @@ require 'httpclient'
 require 'json'
 
 module Encosion
-  
+
   # Generic Encosion error class
   class EncosionError < StandardError
   end
-  
+
   # Raised when there is no token (required to use the Brightcove API)
   class MissingToken < EncosionError
   end
-  
+
   # Raised when some parameter is missing that we need in order to do a search
   class AssetNotFound < EncosionError
   end
-  
+
   # Raised when Brightcove doesn't like the call that was made for whatever reason
   class BrightcoveException < EncosionError
   end
-  
+
   # Raised when Brightcove doesn't like the call that was made for whatever reason
   class NoFile < EncosionError
   end
-  
-  
+
+
   # The base for all Encosion objects
   class Base
-    
+
     attr_accessor :read_token, :write_token
 
     #
     # Class methods
     #
     class << self
-      
+
       # Does a GET to search photos and other good stuff
       def find(*args)
         options = extract_options(args)
@@ -44,42 +44,40 @@ module Encosion
         else        find_from_ids(args,options)
         end
       end
-      
-        
+
+
       # This is an alias for find(:all)
       def all(*args)
         find(:all, *args)
       end
-      
+
 
       # Performs an HTTP GET
       def get(server,port,secure,path,command,options)
         http = HTTPClient.new
         url = secure ? 'https://' : 'http://'
         url += "#{server}:#{port}#{path}"
-        
+
         options.merge!({'command' => command })
         query_string = options.collect { |key,value| "#{key.to_s}=#{value.to_s}" }.join('&')
-        
+
         response = http.get(url, query_string)
-        
+
         body = response.body.content.strip == 'null' ? nil : JSON.parse(response.body.content.strip)   # if the call returns 'null' then there were no valid results
         header = response.header
-        
+
         error_check(header,body)
-        
-        # puts "url: #{url}\nquery_string:#{query_string}"
 
         return body
       end
-      
-      
+
+
       # Performs an HTTP POST
       def post(server,port,secure,path,command,options,instance)
         http = HTTPClient.new
         url = secure ? 'https://' : 'http://'
         url += "#{server}:#{port}#{path}"
-        
+
         content = { 'json' => { 'method' => command, 'params' => options }.to_json }    # package up the variables as a JSON-RPC string
         content.merge!({ 'file' => instance.file }) if instance.respond_to?('file')             # and add a file if there is one
 
@@ -92,8 +90,8 @@ module Encosion
         # if we get here then no exceptions were raised
         return body
       end
-      
-      
+
+
       # Checks the HTTP response and handles any errors
       def error_check(header,body)
         if header.status_code == 200
@@ -101,7 +99,7 @@ module Encosion
 #          puts body['error']
           if body.has_key? 'error' && !body['error'].nil?
             message = "Brightcove responded with an error: #{body['error']} (code #{body['code']})"
-            body['errors'].each do |error| 
+            body['errors'].each do |error|
               message += "\n#{error.values.first} (code #{error.values.last})"
             end if body.has_key? 'errors'
             raise BrightcoveException, message
@@ -111,10 +109,10 @@ module Encosion
           raise BrightcoveException, body + " (status code: #{header.status_code})"
         end
       end
-      
+
 
       protected
-        
+
         # Pulls any Hash off the end of an array of arguments and returns it
         def extract_options(opts)
           opts.last.is_a?(::Hash) ? opts.pop : {}
@@ -138,7 +136,7 @@ module Encosion
               find_some(ids, options)
           end
         end
-        
+
 
         # Turns a hash into a query string and appends the token
         def queryize_args(args, type)
@@ -152,10 +150,10 @@ module Encosion
           end
           return args.collect { |key,value| "#{key.to_s}=#{value.to_s}" }.join('&')
         end
-      
+
     end
-    
-    
+
+
   end
-  
+
 end
